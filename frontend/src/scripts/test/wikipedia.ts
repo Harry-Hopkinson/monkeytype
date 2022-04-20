@@ -96,7 +96,8 @@ export async function getSection(language: string): Promise<Section> {
           // Remove double whitespaces and finally trailing whitespaces.
           sectionText = sectionText.replace(/<\/p><p>+/g, " ");
           sectionText = $("<div/>").html(sectionText).text();
-
+          sectionText = sectionText.replace(/\[\d+\]/gi, "");
+          sectionText = sectionText.replace(/[\u200B-\u200D\uFEFF]/g, "");
           sectionText = sectionText.replace(/\s+/g, " ");
           sectionText = sectionText.trim();
 

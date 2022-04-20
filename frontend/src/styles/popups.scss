@@ -41,7 +41,7 @@
     }
 
     textarea {
-      background: rgba(0, 0, 0, 0.1);
+      background: var(--sub-alt-color);
       padding: 1rem;
       color: var(--main-color);
       border: none;
@@ -85,6 +85,8 @@
     display: grid;
     gap: 1rem;
     width: 400px;
+    max-height: 80vh;
+    overflow: auto;
 
     .title {
       font-size: 1.5rem;
@@ -369,7 +371,7 @@
     }
 
     tbody tr:nth-child(odd) td {
-      background: rgba(0, 0, 0, 0.1);
+      background: var(--sub-alt-color);
     }
 
     td.infoIcons span {
@@ -448,10 +450,19 @@
 
     #quoteSearchControlsWrapper {
       display: grid;
-      grid-template-columns: 1.5fr 1fr;
+      grid-template-columns: 1.5fr 1fr max-content;
       gap: 1rem;
+
       #searchBox {
         width: 100%;
+      }
+
+      #toggleShowFavorites {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.4rem 1rem;
       }
     }
 
@@ -468,10 +479,10 @@
 
       .searchResult {
         display: grid;
-        grid-template-columns: 1fr 1fr 3fr 0fr;
+        grid-template-columns: 1fr 1fr 3fr 0fr 0fr;
         grid-template-areas:
-          "text text text text"
-          "id len source report";
+          "text text text text text"
+          "id len source report favorite";
         grid-auto-rows: auto;
         width: 100%;
         gap: 0.5rem;
@@ -518,12 +529,20 @@
             color: var(--text-color);
           }
         }
+        .favorite {
+          grid-area: favorite;
+          color: var(--sub-color);
+          transition: 0.25s;
+          &:hover {
+            color: var(--text-color);
+          }
+        }
         .sub {
           opacity: 0.5;
         }
       }
       .searchResult:hover {
-        background: rgba(0, 0, 0, 0.1);
+        background: var(--sub-alt-color);
         border-radius: 5px;
       }
     }
@@ -609,7 +628,7 @@
     }
   }
 
-  .icon-button {
+  .text-button {
     justify-content: center;
   }
 
@@ -660,7 +679,7 @@
       color: var(--text-color);
 
       tr:nth-child(odd) td {
-        background: rgba(0, 0, 0, 0.1);
+        background: var(--sub-alt-color);
       }
     }
 
@@ -765,7 +784,7 @@
       }
     }
     .searchResult:hover {
-      background: rgba(0, 0, 0, 0.1);
+      background: var(--sub-alt-color);
       border-radius: 5px;
     }
   }
@@ -837,7 +856,7 @@
 
     .buttons {
       display: grid;
-      gap: 0.1rem;
+      gap: 1rem;
       grid-template-columns: 1fr 1fr 1fr;
     }
   }

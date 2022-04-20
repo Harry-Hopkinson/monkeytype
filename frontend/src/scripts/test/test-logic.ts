@@ -35,6 +35,7 @@ import * as Wordset from "./wordset";
 import * as ChallengeContoller from "../controllers/challenge-controller";
 import * as QuoteRatePopup from "../popups/quote-rate-popup";
 import * as BritishEnglish from "./british-english";
+import * as EnglishPunctuation from "./english-punctuation";
 import * as LazyMode from "./lazy-mode";
 import * as Result from "./result";
 import * as MonkeyPower from "../elements/monkey-power";
@@ -49,11 +50,9 @@ import * as ConfigEvent from "../observables/config-event";
 import * as TimerEvent from "../observables/timer-event";
 import * as Last10Average from "../elements/last-10-average";
 import * as Monkey from "./monkey";
-import NodeObjectHash from "node-object-hash";
+import objectHash from "object-hash";
 import * as AnalyticsController from "../controllers/analytics-controller";
 import { Auth } from "../firebase";
-
-const objecthash = NodeObjectHash().hash;
 
 let failReason = "";
 
@@ -68,16 +67,16 @@ export function setNotSignedInUid(uid: string): void {
   if (notSignedInLastResult === null) return;
   notSignedInLastResult.uid = uid;
   delete notSignedInLastResult.hash;
-  notSignedInLastResult.hash = objecthash(notSignedInLastResult);
+  notSignedInLastResult.hash = objectHash(notSignedInLastResult);
 }
 
 let spanishSentenceTracker = "";
-export function punctuateWord(
+export async function punctuateWord(
   previousWord: string,
   currentWord: string,
   index: number,
   maxindex: number
-): string {
+): Promise<string> {
   let word = currentWord;
 
   const currentLanguage = Config.language.split("_")[0];
@@ -231,9 +230,19 @@ export function punctuateWord(
       const specials = ["{", "}", "[", "]", "(", ")", ";", "=", "+", "%", "/"];
 
       word = Misc.randomElementFromArray(specials);
+    } else if (
+      Math.random() < 0.5 &&
+      currentLanguage === "english" &&
+      (await EnglishPunctuation.check(word))
+    ) {
+      word = await applyEnglishPunctuationToWord(word);
     }
   }
   return word;
+}
+
+async function applyEnglishPunctuationToWord(word: string): Promise<string> {
+  return EnglishPunctuation.replace(word);
 }
 
 export function startTest(): boolean {
@@ -385,7 +394,7 @@ export function restart(
   PaceCaret.reset();
   Monkey.hide();
 
-  if (Config.showAvg) Last10Average.update();
+  if (Config.showAverage) Last10Average.update();
   $("#showWordHistoryButton").removeClass("loaded");
   $("#restartTestButton").blur();
   Funbox.resetMemoryTimer();
@@ -457,12 +466,18 @@ export function restart(
         withSameWordset &&
         (Config.funbox === "plus_one" || Config.funbox === "plus_two")
       ) {
-        Notifications.add(
-          "Sorry, this funbox won't work with repeated tests.",
-          0,
-          4
-        );
-        withSameWordset = false;
+        const toPush = [];
+        if (Config.funbox === "plus_one") {
+          toPush.push(TestWords.words.get(0));
+          toPush.push(TestWords.words.get(1));
+        }
+        if (Config.funbox === "plus_two") {
+          toPush.push(TestWords.words.get(0));
+          toPush.push(TestWords.words.get(1));
+          toPush.push(TestWords.words.get(2));
+        }
+        TestWords.words.reset();
+        toPush.forEach((word) => TestWords.words.push(word));
       }
       if (!withSameWordset && !shouldQuoteRepeat) {
         TestState.setRepeated(false);
@@ -487,7 +502,6 @@ export function restart(
                 TestInput.input.current.length + 1
               )
               .toString()
-              .toUpperCase()
           );
         }
         Funbox.toggleScript(TestWords.words.getCurrent());
@@ -553,7 +567,6 @@ export function restart(
               TestInput.input.current.length + 1
             )
             .toString()
-            .toUpperCase()
         );
       }
 
@@ -683,7 +696,7 @@ async function getNextWord(
   randomWord = applyFunboxesToWord(randomWord, wordset);
 
   if (Config.punctuation) {
-    randomWord = punctuateWord(
+    randomWord = await punctuateWord(
       TestWords.words.get(TestWords.words.length - 1),
       randomWord,
       TestWords.words.length,
@@ -852,8 +865,10 @@ export async function init(): Promise<void> {
           TestWords.setHasTab(true);
         }
 
-        if (/ +/.test(randomWord)) {
-          const randomList = randomWord.split(" ");
+        const te = randomWord.replace("\n", "\n ").trim();
+
+        if (/ +/.test(te)) {
+          const randomList = te.split(" ");
           let id = 0;
           while (id < randomList.length) {
             TestWords.words.push(randomList[id]);
@@ -991,7 +1006,6 @@ export async function init(): Promise<void> {
           TestInput.input.current.length + 1
         )
         .toString()
-        .toUpperCase()
     );
   }
   Funbox.toggleScript(TestWords.words.getCurrent());
@@ -1442,7 +1456,7 @@ export async function finish(difficultyFailed = false): Promise<void> {
     $(".pageTest #result #reportQuoteButton").removeClass("hidden");
   }
 
-  Result.update(
+  await Result.update(
     completedEvent,
     difficultyFailed,
     failReason,
@@ -1482,21 +1496,11 @@ export async function finish(difficultyFailed = false): Promise<void> {
   completedEvent.uid = Auth.currentUser?.uid as string;
   Result.updateRateQuote(TestWords.randomQuote);
 
-  Result.updateGraphPBLine();
-
   AccountButton.loading(true);
   completedEvent.challenge = ChallengeContoller.verify(completedEvent);
   if (completedEvent.challenge === null) delete completedEvent?.challenge;
 
-  completedEvent.hash = objecthash(completedEvent);
-
-  if (
-    (completedEvent.mode === "words" && completedEvent.mode2 == 10) ||
-    completedEvent.mode === "custom"
-  ) {
-    //@ts-ignore
-    completedEvent.stringified = JSON.stringify(completedEvent);
-  }
+  completedEvent.hash = objectHash(completedEvent);
 
   const response = await Ape.results.save(completedEvent);
 
@@ -1632,6 +1636,7 @@ $(document).on("keypress", "#restartTestButtonWithSameWordset", (event) => {
 });
 
 $(document).on("click", "#top .config .wordCount .text-button", (e) => {
+  if (TestUI.testRestarting) return;
   const wrd = $(e.currentTarget).attr("wordCount") ?? "15";
   if (wrd != "custom") {
     UpdateConfig.setWordCount(parseInt(wrd));
@@ -1641,6 +1646,7 @@ $(document).on("click", "#top .config .wordCount .text-button", (e) => {
 });
 
 $(document).on("click", "#top .config .time .text-button", (e) => {
+  if (TestUI.testRestarting) return;
   const mode = $(e.currentTarget).attr("timeConfig") ?? "10";
   if (mode != "custom") {
     UpdateConfig.setTimeConfig(parseInt(mode));
@@ -1650,6 +1656,7 @@ $(document).on("click", "#top .config .time .text-button", (e) => {
 });
 
 $(document).on("click", "#top .config .quoteLength .text-button", (e) => {
+  if (TestUI.testRestarting) return;
   let len: MonkeyTypes.QuoteLength | MonkeyTypes.QuoteLength[] = <
     MonkeyTypes.QuoteLength
   >parseInt($(e.currentTarget).attr("quoteLength") ?? "1");
@@ -1664,18 +1671,21 @@ $(document).on("click", "#top .config .quoteLength .text-button", (e) => {
 });
 
 $(document).on("click", "#top .config .punctuationMode .text-button", () => {
+  if (TestUI.testRestarting) return;
   UpdateConfig.setPunctuation(!Config.punctuation);
   ManualRestart.set();
   restart();
 });
 
 $(document).on("click", "#top .config .numbersMode .text-button", () => {
+  if (TestUI.testRestarting) return;
   UpdateConfig.setNumbers(!Config.numbers);
   ManualRestart.set();
   restart();
 });
 
 $(document).on("click", "#top .config .mode .text-button", (e) => {
+  if (TestUI.testRestarting) return;
   if ($(e.currentTarget).hasClass("active")) return;
   const mode = ($(e.currentTarget).attr("mode") ?? "time") as MonkeyTypes.Mode;
   if (mode === undefined) return;
@@ -1706,7 +1716,10 @@ $(document).on(
   "click",
   "#quoteSearchPopup #quoteSearchResults .searchResult",
   (e) => {
-    if (e.target.classList.contains("report")) {
+    if (
+      e.target.classList.contains("report") ||
+      e.target.classList.contains("favorite")
+    ) {
       return;
     }
     const sid = parseInt($(e.currentTarget).attr("id") ?? "");

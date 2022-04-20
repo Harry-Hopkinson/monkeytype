@@ -9,6 +9,7 @@ export default <MonkeyTypes.Config>{
     "#e2b714",
     "#e2b714",
     "#646669",
+    "#2c2e31",
     "#d1d0c5",
     "#ca4754",
     "#7e2a33",
@@ -94,5 +95,5 @@ export default <MonkeyTypes.Config>{
   burstHeatmap: false,
   britishEnglish: false,
   lazyMode: false,
-  showAvg: false,
+  showAverage: "off",
 };

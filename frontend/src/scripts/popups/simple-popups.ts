@@ -142,7 +142,11 @@ class SimplePopup {
               el.find(".inputs").append(`
                 <label class="checkbox">
                   <input type="checkbox">
-                  <div class="customTextCheckbox"></div>
+                  <div class="customTextCheckbox">
+                    <div class="check">
+                      <i class="fas fa-fw fa-check"></i>
+                    </div>
+                  </div>
                   ${input.label}
                 </label>
               `);
@@ -387,7 +391,7 @@ list["updateName"] = new SimplePopup(
 
       Notifications.add("Name updated", 1);
       DB.getSnapshot().name = newName;
-      $("#menu .icon-button.account .text").text(newName);
+      $("#menu .text-button.account .text").text(newName);
     } catch (e) {
       const typedError = e as FirebaseError;
       if (typedError.code === "auth/wrong-password") {

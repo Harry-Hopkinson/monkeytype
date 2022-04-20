@@ -69,6 +69,8 @@ declare namespace MonkeyTypes {
 
   type KeymapLegendStyle = "lowercase" | "uppercase" | "blank" | "dynamic";
 
+  type ShowAverage = "off" | "wpm" | "acc" | "both";
+
   type SingleListCommandLine = "manual" | "on";
 
   /*
@@ -127,6 +129,32 @@ declare namespace MonkeyTypes {
   type CustomLayoutFluidSpaces =
     | CustomLayoutFluid
     | `${string} ${string} ${string}`;
+
+  interface HistoryChartData {
+    x: number;
+    y: number;
+    wpm: number;
+    acc: number;
+    mode: string;
+    mode2: string | number;
+    punctuation: boolean;
+    language: string;
+    timestamp: number;
+    difficulty: string;
+    raw: number;
+  }
+
+  interface AccChartData {
+    x: number;
+    y: number;
+    errorRate: number;
+  }
+
+  interface ActivityChartDataPoint {
+    x: number;
+    y: number;
+    amount?: number;
+  }
 
   interface FunboxObject {
     name: string;
@@ -348,7 +376,7 @@ declare namespace MonkeyTypes {
     burstHeatmap: boolean;
     britishEnglish: boolean;
     lazyMode: boolean;
-    showAvg: boolean;
+    showAverage: ShowAverage;
   }
 
   type ConfigValues =
@@ -425,7 +453,10 @@ declare namespace MonkeyTypes {
     quoteMod?: boolean;
     discordId?: string;
     config?: Config;
+    favoriteQuotes: FavoriteQuotes;
   }
+
+  type FavoriteQuotes = Record<string, string[]>;
 
   type PartialRecord<K extends keyof any, T> = {
     [P in K]?: T;
@@ -602,6 +633,7 @@ declare namespace MonkeyTypes {
     message: string;
     _id: string;
     level?: number;
+    date?: number;
   }
 
   interface ThemeColors {
@@ -609,6 +641,7 @@ declare namespace MonkeyTypes {
     main: string;
     caret: string;
     sub: string;
+    subAlt: string;
     text: string;
     error: string;
     errorExtra: string;

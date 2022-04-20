@@ -200,6 +200,7 @@ export async function setup(challengeName: string): Promise<boolean> {
       CustomText.setIsTimeRandom(false);
       CustomText.setIsWordRandom(challenge.parameters[1] as boolean);
       CustomText.setWord(challenge.parameters[2] as number);
+      CustomText.setTime(-1);
       UpdateConfig.setMode("custom", true);
       UpdateConfig.setDifficulty("normal", true);
     } else if (challenge.type === "script") {
@@ -210,6 +211,8 @@ export async function setup(challengeName: string): Promise<boolean> {
       text = text.replace(/ +/gm, " ");
       CustomText.setText(text.split(" "));
       CustomText.setIsWordRandom(false);
+      CustomText.setTime(-1);
+      CustomText.setWord(-1);
       UpdateConfig.setMode("custom", true);
       UpdateConfig.setDifficulty("normal", true);
       if (challenge.parameters[1] != null) {

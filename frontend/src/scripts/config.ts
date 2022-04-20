@@ -10,6 +10,7 @@ import * as ConfigEvent from "./observables/config-event";
 import DefaultConfig from "./constants/default-config";
 import { Auth } from "./firebase";
 import * as AnalyticsController from "./controllers/analytics-controller";
+import { debounce } from "throttle-debounce";
 
 export let localStorageConfig: MonkeyTypes.Config;
 export let dbConfigLoaded = false;
@@ -33,6 +34,13 @@ let config = {
   ...DefaultConfig,
 };
 
+let configToSend = {} as MonkeyTypes.Config;
+const saveToDatabase = debounce(1000, () => {
+  delete configToSend.resultFilters;
+  if (Object.keys(configToSend).length > 0) DB.saveConfig(configToSend);
+  configToSend = {} as MonkeyTypes.Config;
+});
+
 async function saveToLocalStorage(
   key: keyof MonkeyTypes.Config,
   nosave = false,
@@ -50,29 +58,10 @@ async function saveToLocalStorage(
   const localToSaveStringified = JSON.stringify(localToSave);
   window.localStorage.setItem("config", localToSaveStringified);
   if (!noDbCheck) {
-    // await DB.saveConfig(dbToSave);
-    await saveToDatabase(key);
+    (configToSend[key] as typeof config[typeof key]) = config[key];
+    await saveToDatabase();
   }
   ConfigEvent.dispatch("saveToLocalStorage", localToSaveStringified);
-}
-
-let configToSend = {} as MonkeyTypes.Config;
-let saveTimeout: NodeJS.Timeout | null = null;
-async function saveToDatabase(key: keyof MonkeyTypes.Config): Promise<void> {
-  (configToSend[key] as typeof config[typeof key]) = config[key];
-
-  if (saveTimeout === null) {
-    saveTimeout = setTimeout(
-      async () => {
-        delete configToSend.resultFilters;
-        if (Object.keys(configToSend).length > 0) DB.saveConfig(configToSend);
-        configToSend = {} as MonkeyTypes.Config;
-        clearTimeout(saveTimeout as NodeJS.Timeout);
-        saveTimeout = null;
-      },
-      window.location.hostname === "localhost" ? 0 : 1000
-    );
-  }
 }
 
 export async function saveFullConfigToLocalStorage(
@@ -796,12 +785,19 @@ export function setShowLiveBurst(live: boolean, nosave?: boolean): boolean {
   return true;
 }
 
-export function setShowAvg(live: boolean, nosave?: boolean): boolean {
-  if (!isConfigValueValid("show average", live, ["boolean"])) return false;
+export function setShowAverage(
+  value: MonkeyTypes.ShowAverage,
+  nosave?: boolean
+): boolean {
+  if (
+    !isConfigValueValid("show average", value, [["off", "wpm", "acc", "both"]])
+  ) {
+    return false;
+  }
 
-  config.showAvg = live;
-  saveToLocalStorage("showAvg", nosave);
-  ConfigEvent.dispatch("showAvg", config.showAvg, nosave);
+  config.showAverage = value;
+  saveToLocalStorage("showAverage", nosave);
+  ConfigEvent.dispatch("showAverage", config.showAverage, nosave);
 
   return true;
 }
@@ -1118,7 +1114,7 @@ export function previewFontFamily(font: string): boolean {
 
   document.documentElement.style.setProperty(
     "--font",
-    '"' + font.replace(/_/g, " ") + '", "Roboto Mono"'
+    '"' + font.replace(/_/g, " ") + '", "Roboto Mono", "Vazirmatn"'
   );
 
   return true;
@@ -1149,7 +1145,7 @@ export function setFontFamily(font: string, nosave?: boolean): boolean {
   config.fontFamily = font;
   document.documentElement.style.setProperty(
     "--font",
-    `"${font.replace(/_/g, " ")}", "Roboto Mono"`
+    `"${font.replace(/_/g, " ")}", "Roboto Mono", "Vazirmatn"`
   );
   saveToLocalStorage("fontFamily", nosave);
   ConfigEvent.dispatch("fontFamily", config.fontFamily);
@@ -1275,6 +1271,18 @@ function setThemes(
 ): boolean {
   if (!isConfigValueValid("themes", theme, ["string"])) return false;
 
+  if (customThemeColors.length === 9) {
+    //color missing
+    if (customState) {
+      Notifications.add(
+        "Missing sub alt color. Please edit it in the custom theme settings and save your changes.",
+        0,
+        7
+      );
+    }
+    customThemeColors.splice(4, 0, "#000000");
+  }
+
   config.customThemeColors = customThemeColors;
   config.theme = theme;
   config.customTheme = customState;
@@ -1348,6 +1356,16 @@ export function setCustomThemeColors(
 ): boolean {
   if (!isConfigValueValid("custom theme colors", colors, ["stringArray"])) {
     return false;
+  }
+
+  if (colors.length === 9) {
+    //color missing
+    Notifications.add(
+      "Missing sub alt color. Please edit it in the custom theme settings and save your changes.",
+      0,
+      7
+    );
+    colors.splice(4, 0, "#000000");
   }
 
   if (colors !== undefined) {
@@ -1774,7 +1792,7 @@ export function apply(
     setBurstHeatmap(configObj.burstHeatmap, true);
     setBritishEnglish(configObj.britishEnglish, true);
     setLazyMode(configObj.lazyMode, true);
-    setShowAvg(configObj.showAvg, true);
+    setShowAverage(configObj.showAverage, true);
 
     try {
       setEnableAds(configObj.enableAds, true);

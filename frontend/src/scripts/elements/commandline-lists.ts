@@ -181,10 +181,11 @@ const commandsFonts: MonkeyTypes.CommandsGroup = {
 
 Misc.getFontsList().then((fonts) => {
   fonts.forEach((font) => {
+    const configVal = font.name.replace(/ /g, "_");
     commandsFonts.list.push({
       id: "changeFont" + font.name.replace(/ /g, "_"),
       display: font.display !== undefined ? font.display : font.name,
-      configValue: font.name,
+      configValue: configVal,
       hover: (): void => {
         UpdateConfig.previewFontFamily(font.name);
       },
@@ -357,24 +358,40 @@ const commandsLiveWpm: MonkeyTypes.CommandsGroup = {
   ],
 };
 
-const commandsShowAvg: MonkeyTypes.CommandsGroup = {
+const commandsShowAverage: MonkeyTypes.CommandsGroup = {
   title: "Show average...",
-  configKey: "showAvg",
+  configKey: "showAverage",
   list: [
     {
-      id: "setAvgOff",
+      id: "setShowAverageOff",
       display: "off",
-      configValue: false,
+      configValue: "off",
       exec: (): void => {
-        UpdateConfig.setShowAvg(false);
+        UpdateConfig.setShowAverage("off");
       },
     },
     {
-      id: "setAvgOn",
-      display: "on",
-      configValue: true,
+      id: "setShowAverageSpeed",
+      display: "wpm",
+      configValue: "wpm",
       exec: (): void => {
-        UpdateConfig.setShowAvg(true);
+        UpdateConfig.setShowAverage("wpm");
+      },
+    },
+    {
+      id: "setShowAverageAcc",
+      display: "accuracy",
+      configValue: "acc",
+      exec: (): void => {
+        UpdateConfig.setShowAverage("acc");
+      },
+    },
+    {
+      id: "setShowAverageBoth",
+      display: "both",
+      configValue: "both",
+      exec: (): void => {
+        UpdateConfig.setShowAverage("both");
       },
     },
   ],
@@ -2932,10 +2949,10 @@ export const defaultCommands: MonkeyTypes.CommandsGroup = {
       subgroup: commandsHighlightMode,
     },
     {
-      id: "changeShowAvg",
+      id: "changeShowAverage",
       display: "Show average...",
-      icon: "fa-tachometer-alt",
-      subgroup: commandsShowAvg,
+      icon: "fa-chart-bar",
+      subgroup: commandsShowAverage,
     },
     {
       id: "changeCustomBackground",
@@ -3049,7 +3066,7 @@ export const defaultCommands: MonkeyTypes.CommandsGroup = {
       alias: "start begin type test",
       icon: "fa-keyboard",
       exec: (): void => {
-        $("#top #menu .icon-button.view-start").trigger("click");
+        $("#top #menu .text-button.view-start").trigger("click");
       },
     },
     {
@@ -3057,7 +3074,7 @@ export const defaultCommands: MonkeyTypes.CommandsGroup = {
       display: "View Leaderboards Page",
       icon: "fa-crown",
       exec: (): void => {
-        $("#top #menu .icon-button.view-leaderboards").trigger("click");
+        $("#top #menu .text-button.view-leaderboards").trigger("click");
       },
     },
     {
@@ -3065,7 +3082,7 @@ export const defaultCommands: MonkeyTypes.CommandsGroup = {
       display: "View About Page",
       icon: "fa-info",
       exec: (): void => {
-        $("#top #menu .icon-button.view-about").trigger("click");
+        $("#top #menu .text-button.view-about").trigger("click");
       },
     },
     {
@@ -3073,7 +3090,7 @@ export const defaultCommands: MonkeyTypes.CommandsGroup = {
       display: "View Settings Page",
       icon: "fa-cog",
       exec: (): void => {
-        $("#top #menu .icon-button.view-settings").trigger("click");
+        $("#top #menu .text-button.view-settings").trigger("click");
       },
     },
     {
@@ -3092,9 +3109,9 @@ export const defaultCommands: MonkeyTypes.CommandsGroup = {
       icon: "fa-user",
       alias: "stats",
       exec: (): void => {
-        $("#top #menu .icon-button.view-account").hasClass("hidden")
-          ? $("#top #menu .icon-button.view-login").trigger("click")
-          : $("#top #menu .icon-button.view-account").trigger("click");
+        $("#top #menu .text-button.view-account").hasClass("hidden")
+          ? $("#top #menu .text-button.view-login").trigger("click")
+          : $("#top #menu .text-button.view-account").trigger("click");
       },
     },
     {
@@ -3296,7 +3313,7 @@ const listsObject = {
   commandsDifficulty,
   commandsLazyMode,
   commandsPaceCaret,
-  commandsShowAvg,
+  commandsShowAverage,
   commandsMinWpm,
   commandsMinAcc,
   commandsMinBurst,
